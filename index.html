@@ -1,11 +1,136 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>PumpBot Test</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bukowski Rant / apestradamus </title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{ --text:#fff; --scroll:#fff; }
+
+  html{ font-size: clamp(14px, 2.2vw, 28px); }
+  body{
+    margin:0;
+    background:#000;
+    color:var(--text);
+    font-family:'VT323', monospace;
+    line-height:1.55;
+    letter-spacing:.03em;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+    overflow:hidden;
+  }
+
+  /* Centered 16:9 frame */
+  .frame {
+    position:relative;
+    width:100vw;
+    height:calc(100vw * 9 / 16);
+    max-height:100vh;
+    max-width:calc(100vh * 16 / 9);
+    overflow:hidden;
+    background:#000;
+  }
+
+  .frame img {
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    object-fit:contain;
+    z-index:0;
+  }
+
+  /* Text wrapper — keeps constant top/bottom padding */
+  .log {
+    position:absolute;
+    inset:0;
+    z-index:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:6vh 10vw; /* constant visible padding */
+    box-sizing:border-box;
+  }
+
+  /* Scrollable inner area */
+  .scroll {
+    overflow-y:auto;
+    width:100%;
+    height:100%;
+    padding-top:6vh;   /* adds breathing space inside */
+    padding-bottom:6vh;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    white-space:pre-wrap;
+    text-shadow:0 0 .25em rgba(255,255,255,.28);
+  }
+
+  .entry{
+    margin-bottom:3rem;
+    width:70%;
+    max-width:48ch;
+  }
+
+  .time{
+    color:#9ad0ff;
+    font-size:1.15em;
+    margin-bottom:.6rem;
+  }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--scroll); border-radius:4px; }
+  ::-webkit-scrollbar-track{ background:rgba(255,255,255,.06); }
+
+  @media (max-width:768px){
+    .entry{ width:88%; max-width:none; }
+    .log{ padding:5vh 8vw; }
+    .scroll{ padding-top:5vh; padding-bottom:5vh; }
+  }
+</style>
 </head>
 <body>
-  <h1>Hello PumpBot 👋</h1>
-  <p>This is a test page served from GitHub Pages.</p>
+  <div class="frame">
+    <img src="https://raw.githubusercontent.com/konieclore/BukowskiRant/main/gifs/background.gif?v=6" alt="">
+    <div class="log">
+      <div class="scroll" id="log">Loading…</div>
+    </div>
+  </div>
+
+<script>
+const WORKER="https://pumpbot-worker.apestradamus.workers.dev";
+async function loadHistory(){
+  const el=document.getElementById('log');
+  try{
+    const res=await fetch(`${WORKER}/history`,{mode:'cors',cache:'no-store'});
+    const raw=await res.text();
+    const s=raw.indexOf('['), e=raw.lastIndexOf(']');
+    if(s===-1||e===-1){el.textContent='⚠ malformed history';return;}
+    const arr=JSON.parse(raw.slice(s,e+1));
+    el.innerHTML='';
+    arr.forEach(item=>{
+      if(typeof item!=='string')return;
+      if(/^\s*\d+\s*$/.test(item))return;
+      const lines=item.split('\n');
+      const time=(lines[0]||'').trim();
+      const text=lines.slice(1).join('\n').trim();
+      const div=document.createElement('div');
+      div.className='entry';
+      div.innerHTML=`<div class="time">${time}</div><div>${text}</div>`;
+      el.appendChild(div);
+    });
+  }catch(e){
+    el.textContent='⚠ error loading history';
+    console.error(e);
+  }
+}
+loadHistory();
+setInterval(loadHistory,180000);
+</script>
 </body>
 </html>
